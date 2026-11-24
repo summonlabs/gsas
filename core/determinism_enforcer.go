@@ -152,6 +152,10 @@ func validateDeterministicGo(sourceCode string) error {
 
 func validateDeterministicScript(sourceCode string) error {
 	var violations []string
+	// A script line also ends at a bare carriage return, and a form feed is
+	// legal indentation. Normalize both so no statement can hide from the
+	// line-anchored checks below.
+	sourceCode = strings.NewReplacer("\r\n", "\n", "\r", "\n", "\f", " ").Replace(sourceCode)
 	// An import statement may start a line or follow a `;` or a compound
 	// statement's `:`, and a plain `import` may name several modules. Every
 	// imported module is checked, so an allowed module or an earlier statement

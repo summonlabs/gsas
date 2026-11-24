@@ -146,6 +146,26 @@ func TestScriptImportsCannotHideBehindAnAllowedImportOrStatement(t *testing.T) {
 	))
 }
 
+func TestScriptStatementsCannotHideBehindCarriageReturnsOrFormFeeds(t *testing.T) {
+	enforcer := &core.DeterminismEnforcer{}
+	for _, source := range []string{
+		// A bare carriage return ends a script line just like a line feed.
+		"x = 1\rimport os\rdef evaluate():\r    return os.getpid()\r",
+		"counter = 0\rdef evaluate():\r    global counter\r    return counter\r",
+		// A form feed is legal indentation in front of a statement.
+		"\fimport socket\n\ndef evaluate():\n    return True\n",
+	} {
+		assert.Error(t, enforcer.ValidateDeterministic(source), "accepted: %q", source)
+	}
+
+	for _, source := range []string{
+		"import json\r\n\r\ndef evaluate():\r\n    return True\r\n",
+		"import json\rdef evaluate():\r    return True\r",
+	} {
+		assert.NoError(t, enforcer.ValidateDeterministic(source), "rejected: %q", source)
+	}
+}
+
 func TestEmptySourceCode(t *testing.T) {
 	enforcer := &core.DeterminismEnforcer{}
 	err := enforcer.ValidateDeterministic("")
